@@ -1,34 +1,38 @@
 :root {
-  /* Warna Natural */
-  --bg-primary: #f0f4f8;
+  /* Warna Natural Modern */
+  --bg-primary: #f0f2f5;
   --bg-secondary: #ffffff;
-  --text-primary: #2c3e50;
-  --text-secondary: #7f8c8d;
-  --accent-color: #3498db;
-  --sent-bg: #e3f2fd;
-  --received-bg: #f1f2f6;
+  --bg-message-sent: #d9fdd3;
+  --bg-message-received: #ffffff;
+  --text-primary: #000000;
+  --text-secondary: #666666;
+  --accent-color: #008069;
   --border-color: #e0e0e0;
-  --shadow: 0 2px 10px rgba(0,0,0,0.05);
+  --shadow: 0 1px 2px rgba(0,0,0,0.05);
   --reply-bg: #e0f7fa;
-  --reply-border: #3498db;
+  --reply-border: #008069;
   --delete-btn-bg: #ff6b6b;
   --delete-btn-hover: #ff5252;
+  --status-online: #2ecc71;
+  --status-offline: #e74c3c;
 }
 
 .dark-mode {
-  --bg-primary: #1e293b;
-  --bg-secondary: #0f172a;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --accent-color: #60a5fa;
-  --sent-bg: #334155;
-  --received-bg: #334155;
-  --border-color: #475569;
-  --shadow: 0 2px 10px rgba(0,0,0,0.2);
+  --bg-primary: #111b21;
+  --bg-secondary: #1e293b;
+  --bg-message-sent: #005c4b;
+  --bg-message-received: #202c33;
+  --text-primary: #e9edef;
+  --text-secondary: #8696a0;
+  --accent-color: #00a884;
+  --border-color: #374248;
+  --shadow: 0 1px 2px rgba(0,0,0,0.2);
   --reply-bg: #1e3a8a;
-  --reply-border: #60a5fa;
+  --reply-border: #00a884;
   --delete-btn-bg: #ef4444;
   --delete-btn-hover: #dc2626;
+  --status-online: #2ecc71;
+  --status-offline: #e74c3c;
 }
 
 * {
@@ -46,18 +50,20 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
 }
 
 #app {
   width: 100%;
   max-width: 600px;
-  height: 90vh;
+  height: 95vh;
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: var(--shadow);
   background-color: var(--bg-secondary);
+  position: relative;
 }
 
 header {
@@ -67,6 +73,8 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 10;
 }
 
 header h1 {
@@ -96,23 +104,22 @@ main {
   flex-direction: column;
   gap: 12px;
   background-color: var(--bg-primary);
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%239C92AC' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
 }
 
 .message {
-  max-width: 80%;
+  max-width: 75%;
   padding: 10px 14px;
   border-radius: 16px;
   word-wrap: break-word;
   position: relative;
   animation: fadeIn 0.3s ease-out;
-  transition: background-color 0.2s;
-  /* Tambahkan ini agar long press bisa bekerja di mobile */
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
+  box-shadow: var(--shadow);
+  transition: transform 0.1s ease;
+}
+
+.message:active {
+  transform: scale(0.99);
 }
 
 @keyframes fadeIn {
@@ -122,14 +129,15 @@ main {
 
 .sent {
   align-self: flex-end;
-  background-color: var(--sent-bg);
+  background-color: var(--bg-message-sent);
   color: var(--text-primary);
 }
 
 .received {
   align-self: flex-start;
-  background-color: var(--received-bg);
+  background-color: var(--bg-message-received);
   color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .reply-origin {
@@ -161,59 +169,12 @@ main {
   display: block;
 }
 
-/* Popup konfirmasi hapus */
-.confirm-delete {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: white;
-  border-radius: 8px;
-  padding: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  z-index: 100;
-  text-align: center;
-  width: 240px;
-}
-
-.confirm-delete p {
-  margin-bottom: 12px;
-}
-
-.confirm-delete button {
-  margin: 0 4px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.confirm-delete .confirm-yes {
-  background-color: var(--delete-btn-bg);
-  color: white;
-}
-
-.confirm-delete .confirm-no {
-  background-color: #ccc;
-  color: black;
-}
-
-.overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  z-index: 99;
-  display: none;
-}
-
 footer {
   display: flex;
   padding: 12px;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
+  gap: 8px;
 }
 
 #messageInput {
@@ -225,6 +186,8 @@ footer {
   outline: none;
   background-color: var(--bg-primary);
   color: var(--text-primary);
+  resize: none;
+  max-height: 100px;
 }
 
 #messageInput:focus {
@@ -232,7 +195,6 @@ footer {
 }
 
 #sendBtn {
-  margin-left: 10px;
   padding: 12px 20px;
   background-color: var(--accent-color);
   color: white;
@@ -241,10 +203,13 @@ footer {
   cursor: pointer;
   font-size: 1rem;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 #sendBtn:hover {
-  background-color: #2980b9;
+  background-color: #006653;
 }
 
 .user-info {
@@ -257,13 +222,86 @@ footer {
 }
 
 .avatar {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background-color: var(--accent-color);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: bold;
+  position: relative;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--status-online);
+  border: 1px solid var(--bg-secondary);
+}
+
+.status-offline {
+  background-color: var(--status-offline);
+}
+
+/* Popup konfirmasi hapus */
+.confirm-delete {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 100;
+  text-align: center;
+  width: 240px;
+  animation: popIn 0.2s ease-out;
+}
+
+@keyframes popIn {
+  from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+.confirm-delete p {
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.confirm-delete button {
+  margin: 0 4px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.confirm-delete .confirm-yes {
+  background-color: var(--delete-btn-bg);
+  color: white;
+}
+
+.confirm-delete .confirm-no {
+  background-color: #f1f5f9;
+  color: var(--text-primary);
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 99;
+  display: none;
 }
