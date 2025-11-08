@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, onDisconnect, serverTimestamp, remove, set } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, serverTimestamp, remove, set } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -13,14 +14,21 @@ const firebaseConfig = {
   measurementId: "G-81BR3WPV20"
 };
 
-// Initialize Firebase app and database
+// Initialize Firebase app, database, and auth
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
+const auth = getAuth(app);
 
+// UI Elements
 let messageInput, sendBtn, messagesDiv, usernameInput, imageInput, uploadImageBtn;
 let newContactInput, addContactBtn, contactsList, chatHeader, chatArea, chatFooter, chatTitle;
+let loginUsername, loginPassword, loginBtn;
+let registerUsername, registerPassword, registerBtn;
+let logoutBtn;
+let authScreen, mainApp;
 
-// Currently active contact
+// Currently active user and contact
+let currentUser = null;
 let currentContactId = null;
 
 // Function to generate unique contact ID
@@ -28,16 +36,104 @@ function generateContactId(name) {
   return name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
 }
 
+// Function to handle login
+function handleLogin() {
+  const email = loginUsername.value.trim(); // Firebase Auth membutuhkan email
+  const password = loginPassword.value;
+
+  if (!email || !password) {
+    alert("Email dan password harus diisi.");
+    return;
+  }
+
+  // Gunakan email sebagai username
+  // Untuk menyederhanakan, kita asumsikan email = username
+  signInWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      console.log("Login berhasil:", userCredential.user);
+      currentUser = userCredential.user;
+      usernameInput.value = email.split('@')[0]; // Gunakan bagian sebelum @ sebagai nama tampilan
+      showMainApp();
+      loadContacts();
+    })
+    .catch((error) => {
+      console.error("Login gagal:", error);
+      alert("Login gagal: " + error.message);
+    });
+}
+
+// Function to handle registration
+function handleRegister() {
+  const email = registerUsername.value.trim(); // Gunakan username sebagai email
+  const password = registerPassword.value;
+
+  if (!email || !password) {
+    alert("Email dan password harus diisi.");
+    return;
+  }
+
+  createUserWithEmailAndPassword(auth, email, password)
+    .then((userCredential) => {
+      console.log("Registrasi berhasil:", userCredential.user);
+      // Buat profil dasar di database
+      const profileRef = ref(database, `users/${userCredential.user.uid}/profile`);
+      set(profileRef, {
+        username: email.split('@')[0], // Gunakan bagian sebelum @
+        createdAt: serverTimestamp()
+      }).then(() => {
+        alert("Registrasi berhasil! Silakan login.");
+        // Pindah ke tab login
+        const loginTab = document.getElementById('login-tab');
+        bootstrap.Tab.getOrCreateInstance(loginTab).show();
+      }).catch(e => console.error("Gagal membuat profil:", e));
+    })
+    .catch((error) => {
+      console.error("Registrasi gagal:", error);
+      alert("Registrasi gagal: " + error.message);
+    });
+}
+
+// Function to handle logout
+function handleLogout() {
+  signOut(auth).then(() => {
+    console.log("Logout berhasil");
+    currentUser = null;
+    currentContactId = null;
+    showAuthScreen();
+  }).catch((error) => {
+    console.error("Logout gagal:", error);
+  });
+}
+
+// Function to show main app screen
+function showMainApp() {
+  authScreen.style.display = 'none';
+  mainApp.style.display = 'flex';
+}
+
+// Function to show auth screen
+function showAuthScreen() {
+  authScreen.style.display = 'flex';
+  mainApp.style.display = 'none';
+  // Reset form
+  loginUsername.value = '';
+  loginPassword.value = '';
+  registerUsername.value = '';
+  registerPassword.value = '';
+}
+
 // Function to add contact to Firebase
 function addContact() {
+  if (!currentUser) return;
+
   const name = newContactInput.value.trim();
   if (!name) return;
 
   const contactId = generateContactId(name);
-  const contactRef = ref(database, `contacts/${contactId}`);
+  const contactRef = ref(database, `users/${currentUser.uid}/contacts/${contactId}`);
   set(contactRef, {
     name: name,
-    lastSeen: serverTimestamp()
+    addedAt: serverTimestamp()
   }).then(() => {
     console.log("Kontak berhasil ditambahkan");
     newContactInput.value = '';
@@ -46,7 +142,9 @@ function addContact() {
 
 // Function to load contacts from Firebase
 function loadContacts() {
-  const contactsRef = ref(database, 'contacts');
+  if (!currentUser) return;
+
+  const contactsRef = ref(database, `users/${currentUser.uid}/contacts`);
   onValue(contactsRef, (snapshot) => {
     contactsList.innerHTML = '';
     const data = snapshot.val();
@@ -70,6 +168,8 @@ function loadContacts() {
 
 // Function to open chat with a contact
 function openChat(contactId, contactName) {
+  if (!currentUser) return;
+
   currentContactId = contactId;
 
   // Update UI
@@ -90,7 +190,9 @@ function openChat(contactId, contactName) {
 
 // Function to load messages for a specific contact
 function loadMessagesForContact(contactId) {
-  const messagesRef = ref(database, `messages/${contactId}`);
+  if (!currentUser) return;
+
+  const messagesRef = ref(database, `users/${currentUser.uid}/messages/${contactId}`);
   onValue(messagesRef, (snapshot) => {
     if (!messagesDiv) return;
     messagesDiv.innerHTML = '';
@@ -108,8 +210,8 @@ function loadMessagesForContact(contactId) {
 
 // Function to send text message
 function sendMessage() {
-  if (!currentContactId || !messageInput || !sendBtn || !messagesDiv) {
-    console.error("Kontak belum dipilih atau elemen DOM belum siap!");
+  if (!currentUser || !currentContactId || !messageInput || !sendBtn || !messagesDiv) {
+    console.error("Pengguna belum login, kontak belum dipilih, atau elemen DOM belum siap!");
     return;
   }
 
@@ -118,11 +220,11 @@ function sendMessage() {
     const newMessage = {
       content: text,
       type: 'text',
-      sender: getUsername(),
+      sender: usernameInput.value.trim() || 'Anda',
       timestamp: serverTimestamp(),
       replyTo: currentReplyTo || null
     };
-    const msgRef = ref(database, `messages/${currentContactId}`);
+    const msgRef = ref(database, `users/${currentUser.uid}/messages/${currentContactId}`);
     push(msgRef, newMessage)
       .then(() => console.log("Pesan berhasil dikirim"))
       .catch(e => console.error("Error mengirim pesan:", e));
@@ -133,7 +235,7 @@ function sendMessage() {
 
 // Function to send image
 function sendImage() {
-  if (!currentContactId || !imageInput) return;
+  if (!currentUser || !currentContactId || !imageInput) return;
 
   const file = imageInput.files[0];
   if (!file) return;
@@ -143,11 +245,11 @@ function sendImage() {
     const newMessage = {
       content: e.target.result,
       type: 'image',
-      sender: getUsername(),
+      sender: usernameInput.value.trim() || 'Anda',
       timestamp: serverTimestamp(),
       replyTo: currentReplyTo || null
     };
-    const msgRef = ref(database, `messages/${currentContactId}`);
+    const msgRef = ref(database, `users/${currentUser.uid}/messages/${currentContactId}`);
     push(msgRef, newMessage)
       .then(() => console.log("Gambar berhasil dikirim"))
       .catch(e => console.error("Error mengirim gambar:", e));
@@ -181,8 +283,8 @@ function cancelReply() {
 
 // Function to delete a message
 function deleteMessage(key) {
-  if (!currentContactId) return;
-  const msgRef = ref(database, `messages/${currentContactId}/${key}`);
+  if (!currentUser || !currentContactId) return;
+  const msgRef = ref(database, `users/${currentUser.uid}/messages/${currentContactId}/${key}`);
   remove(msgRef)
     .then(() => console.log("Pesan berhasil dihapus"))
     .catch(e => console.error("Error menghapus pesan:", e));
@@ -232,7 +334,7 @@ function addMessageToDOM(msg, key) {
 
   const msgDiv = document.createElement('div');
   msgDiv.classList.add('message');
-  msgDiv.classList.add(msg.sender === getUsername() ? 'sent' : 'received');
+  msgDiv.classList.add(msg.sender === usernameInput.value.trim() ? 'sent' : 'received');
 
   // Add user info (avatar and name)
   const userInfo = document.createElement('div');
@@ -241,13 +343,6 @@ function addMessageToDOM(msg, key) {
   const avatar = document.createElement('div');
   avatar.classList.add('avatar');
   avatar.textContent = msg.sender.charAt(0).toUpperCase();
-
-  // Status indicator (online/offline)
-  const statusIndicator = document.createElement('div');
-  statusIndicator.classList.add('status-indicator');
-  // Kita bisa ambil status dari Firebase nanti
-  // statusIndicator.classList.add('status-offline'); // atau 'status-online'
-  avatar.appendChild(statusIndicator);
 
   const nameSpan = document.createElement('span');
   nameSpan.textContent = msg.sender;
@@ -272,7 +367,7 @@ function addMessageToDOM(msg, key) {
   }
 
   // Add long press event for deleting own messages on mobile
-  if (msg.sender === getUsername()) {
+  if (msg.sender === usernameInput.value.trim()) {
     let pressTimer;
 
     msgDiv.addEventListener('touchstart', (e) => {
@@ -302,26 +397,32 @@ function addMessageToDOM(msg, key) {
   messagesDiv.appendChild(msgDiv);
 }
 
-// Function to get current username
-function getUsername() {
-  if (!usernameInput) {
-    console.error("usernameInput tidak ditemukan!");
-    return 'Anonim';
+// Check auth state on page load
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    // User is signed in
+    currentUser = user;
+    usernameInput.value = user.email.split('@')[0]; // Gunakan bagian sebelum @
+    showMainApp();
+    loadContacts();
+  } else {
+    // User is signed out
+    showAuthScreen();
   }
-  return usernameInput.value.trim() || 'Anonim';
-}
-
-// Set user status to online
-if (typeof window !== 'undefined') {
-  const userStatusRef = ref(database, `status/${getUsername()}`);
-  onDisconnect(userStatusRef).set(false).then(() => {
-    // Set online status when user connects
-    userStatusRef.set(true);
-  });
-}
+});
 
 // Wait for DOM to load before accessing elements
 document.addEventListener('DOMContentLoaded', () => {
+  // Auth Elements
+  loginUsername = document.getElementById('loginUsername');
+  loginPassword = document.getElementById('loginPassword');
+  loginBtn = document.getElementById('loginBtn');
+  registerUsername = document.getElementById('registerUsername');
+  registerPassword = document.getElementById('registerPassword');
+  registerBtn = document.getElementById('registerBtn');
+  logoutBtn = document.getElementById('logoutBtn');
+
+  // Main App Elements
   messageInput = document.getElementById('messageInput');
   sendBtn = document.getElementById('sendBtn');
   messagesDiv = document.getElementById('messages');
@@ -337,36 +438,30 @@ document.addEventListener('DOMContentLoaded', () => {
   chatFooter = document.getElementById('chatFooter');
   chatTitle = document.getElementById('chatTitle');
 
-  if (!messageInput || !sendBtn || !messagesDiv || !usernameInput || !imageInput || !uploadImageBtn ||
-      !newContactInput || !addContactBtn || !contactsList) {
-    console.error("Salah satu elemen DOM tidak ditemukan!");
-    return;
-  }
+  authScreen = document.getElementById('authScreen');
+  mainApp = document.getElementById('mainApp');
 
-  console.log("Semua elemen DOM ditemukan");
+  // Check if elements exist before adding listeners
+  if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+  if (registerBtn) registerBtn.addEventListener('click', handleRegister);
+  if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
-  // Attach event listeners
-  sendBtn.addEventListener('click', sendMessage);
-  uploadImageBtn.addEventListener('click', () => imageInput.click());
-  imageInput.addEventListener('change', sendImage);
-
-  addContactBtn.addEventListener('click', addContact);
-  newContactInput.addEventListener('keypress', (e) => {
+  if (addContactBtn) addContactBtn.addEventListener('click', addContact);
+  if (newContactInput) newContactInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') addContact();
   });
 
-  messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
+  if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+  if (uploadImageBtn) uploadImageBtn.addEventListener('click', () => imageInput.click());
+  if (imageInput) imageInput.addEventListener('change', sendImage);
 
-  // Cancel reply when user clicks outside input
   if (messageInput) {
-    messageInput.addEventListener('blur', cancelReply);
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    messageInput.addEventListener('blur', cancelReply); // Cancel reply when user clicks outside input
   }
-
-  // Load contacts
-  loadContacts();
 });
