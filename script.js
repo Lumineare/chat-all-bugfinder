@@ -1,11 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, onDisconnect, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, onDisconnect, serverTimestamp, remove, set } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
 
 // Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyAuTnzeqL4MewumZLrsaKe3Mo4osmwnsoA",
   authDomain: "chat-89990.firebaseapp.com",
-  databaseURL: "https://chat-89990-default-rtdb.firebaseio.com/", // <- Spasi di akhir dihapus
+  databaseURL: "https://chat-89990-default-rtdb.firebaseio.com/",
   projectId: "chat-89990",
   storageBucket: "chat-89990.firebasestorage.app",
   messagingSenderId: "169196104649",
@@ -17,15 +17,99 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 
-// Reference to 'messages' node in the database
-const messagesRef = ref(database, 'messages');
-
 let messageInput, sendBtn, messagesDiv, usernameInput, imageInput, uploadImageBtn;
+let newContactInput, addContactBtn, contactsList, chatHeader, chatArea, chatFooter, chatTitle;
+
+// Currently active contact
+let currentContactId = null;
+
+// Function to generate unique contact ID
+function generateContactId(name) {
+  return name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+}
+
+// Function to add contact to Firebase
+function addContact() {
+  const name = newContactInput.value.trim();
+  if (!name) return;
+
+  const contactId = generateContactId(name);
+  const contactRef = ref(database, `contacts/${contactId}`);
+  set(contactRef, {
+    name: name,
+    lastSeen: serverTimestamp()
+  }).then(() => {
+    console.log("Kontak berhasil ditambahkan");
+    newContactInput.value = '';
+  }).catch(e => console.error("Error menambah kontak:", e));
+}
+
+// Function to load contacts from Firebase
+function loadContacts() {
+  const contactsRef = ref(database, 'contacts');
+  onValue(contactsRef, (snapshot) => {
+    contactsList.innerHTML = '';
+    const data = snapshot.val();
+    if (data) {
+      Object.entries(data).forEach(([id, contact]) => {
+        const contactDiv = document.createElement('div');
+        contactDiv.classList.add('contact-item');
+        contactDiv.onclick = () => openChat(id, contact.name);
+        contactDiv.innerHTML = `
+          <div class="avatar-sm">${contact.name.charAt(0).toUpperCase()}</div>
+          <div>${contact.name}</div>
+        `;
+        if (id === currentContactId) {
+          contactDiv.classList.add('active');
+        }
+        contactsList.appendChild(contactDiv);
+      });
+    }
+  });
+}
+
+// Function to open chat with a contact
+function openChat(contactId, contactName) {
+  currentContactId = contactId;
+
+  // Update UI
+  chatTitle.textContent = contactName;
+  chatHeader.classList.remove('d-none');
+  chatArea.classList.remove('d-none');
+  chatFooter.classList.remove('d-none');
+
+  // Highlight active contact
+  document.querySelectorAll('#contactsList .contact-item').forEach(item => {
+    item.classList.remove('active');
+  });
+  event.target.closest('.contact-item').classList.add('active');
+
+  // Load messages for this contact
+  loadMessagesForContact(contactId);
+}
+
+// Function to load messages for a specific contact
+function loadMessagesForContact(contactId) {
+  const messagesRef = ref(database, `messages/${contactId}`);
+  onValue(messagesRef, (snapshot) => {
+    if (!messagesDiv) return;
+    messagesDiv.innerHTML = '';
+    const data = snapshot.val();
+    if (data) {
+      Object.entries(data).forEach(([key, msg]) => {
+        addMessageToDOM(msg, key);
+      });
+    }
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }, {
+    onlyOnce: false
+  });
+}
 
 // Function to send text message
 function sendMessage() {
-  if (!messageInput || !sendBtn || !messagesDiv) {
-    console.error("Elemen DOM belum siap!");
+  if (!currentContactId || !messageInput || !sendBtn || !messagesDiv) {
+    console.error("Kontak belum dipilih atau elemen DOM belum siap!");
     return;
   }
 
@@ -38,7 +122,8 @@ function sendMessage() {
       timestamp: serverTimestamp(),
       replyTo: currentReplyTo || null
     };
-    push(messagesRef, newMessage)
+    const msgRef = ref(database, `messages/${currentContactId}`);
+    push(msgRef, newMessage)
       .then(() => console.log("Pesan berhasil dikirim"))
       .catch(e => console.error("Error mengirim pesan:", e));
     messageInput.value = '';
@@ -48,7 +133,7 @@ function sendMessage() {
 
 // Function to send image
 function sendImage() {
-  if (!imageInput) return;
+  if (!currentContactId || !imageInput) return;
 
   const file = imageInput.files[0];
   if (!file) return;
@@ -62,31 +147,13 @@ function sendImage() {
       timestamp: serverTimestamp(),
       replyTo: currentReplyTo || null
     };
-    push(messagesRef, newMessage)
+    const msgRef = ref(database, `messages/${currentContactId}`);
+    push(msgRef, newMessage)
       .then(() => console.log("Gambar berhasil dikirim"))
       .catch(e => console.error("Error mengirim gambar:", e));
   };
   reader.readAsDataURL(file);
 }
-
-// Function to display messages from Firebase
-onValue(messagesRef, (snapshot) => {
-  if (!messagesDiv) {
-    console.error("messagesDiv tidak ditemukan!");
-    return;
-  }
-
-  messagesDiv.innerHTML = '';
-  const data = snapshot.val();
-  if (data) {
-    Object.entries(data).forEach(([key, msg]) => {
-      addMessageToDOM(msg, key);
-    });
-  }
-  messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}, {
-  onlyOnce: false
-});
 
 // Variable to track which message is being replied to
 let currentReplyTo = null;
@@ -114,7 +181,8 @@ function cancelReply() {
 
 // Function to delete a message
 function deleteMessage(key) {
-  const msgRef = ref(database, `messages/${key}`);
+  if (!currentContactId) return;
+  const msgRef = ref(database, `messages/${currentContactId}/${key}`);
   remove(msgRef)
     .then(() => console.log("Pesan berhasil dihapus"))
     .catch(e => console.error("Error menghapus pesan:", e));
@@ -261,7 +329,16 @@ document.addEventListener('DOMContentLoaded', () => {
   imageInput = document.getElementById('imageInput');
   uploadImageBtn = document.getElementById('uploadImageBtn');
 
-  if (!messageInput || !sendBtn || !messagesDiv || !usernameInput || !imageInput || !uploadImageBtn) {
+  newContactInput = document.getElementById('newContactInput');
+  addContactBtn = document.getElementById('addContactBtn');
+  contactsList = document.getElementById('contactsList');
+  chatHeader = document.getElementById('chatHeader');
+  chatArea = document.getElementById('chatArea');
+  chatFooter = document.getElementById('chatFooter');
+  chatTitle = document.getElementById('chatTitle');
+
+  if (!messageInput || !sendBtn || !messagesDiv || !usernameInput || !imageInput || !uploadImageBtn ||
+      !newContactInput || !addContactBtn || !contactsList) {
     console.error("Salah satu elemen DOM tidak ditemukan!");
     return;
   }
@@ -272,6 +349,11 @@ document.addEventListener('DOMContentLoaded', () => {
   sendBtn.addEventListener('click', sendMessage);
   uploadImageBtn.addEventListener('click', () => imageInput.click());
   imageInput.addEventListener('change', sendImage);
+
+  addContactBtn.addEventListener('click', addContact);
+  newContactInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addContact();
+  });
 
   messageInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -284,4 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (messageInput) {
     messageInput.addEventListener('blur', cancelReply);
   }
+
+  // Load contacts
+  loadContacts();
 });
