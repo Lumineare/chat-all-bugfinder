@@ -1,4 +1,3 @@
-// Import Firebase modules
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
 
@@ -135,13 +134,14 @@ function addMessageToDOM(msg, key) {
   userInfo.appendChild(avatar);
   userInfo.appendChild(nameSpan);
 
-  // Add reply preview if this message is a reply
+  // Add reply origin if this message is a reply
   if (msg.replyTo) {
-    const replyPreview = document.createElement('div');
-    replyPreview.classList.add('reply-preview');
-    replyPreview.innerHTML = `<span>${msg.replyTo.sender}:</span> ${msg.replyTo.type === 'image' ? '[Gambar]' : msg.replyTo.content.substring(0, 30) + '...'}`;
-    replyPreview.onclick = () => startReply(msg.replyTo);
-    msgDiv.appendChild(replyPreview);
+    const replyOrigin = document.createElement('div');
+    replyOrigin.classList.add('reply-origin');
+    replyOrigin.innerHTML = `<span>${msg.replyTo.sender}:</span> ${msg.replyTo.type === 'image' ? '[Gambar]' : msg.replyTo.content.substring(0, 50) + '...'}`;
+    // Optional: Add click to scroll to original message
+    // replyOrigin.onclick = () => scrollToMessage(msg.replyTo.key);
+    msgDiv.appendChild(replyOrigin);
   }
 
   if (msg.type === 'image') {
