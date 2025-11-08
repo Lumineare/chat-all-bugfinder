@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Sederhana</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Chat Sederhana</h1>
+      <div>
+        <input type="text" id="usernameInput" placeholder="Nama Anda" value="Anonim">
+        <input type="file" id="imageInput" accept="image/*" style="display: none;">
+        <button id="uploadImageBtn">📷</button>
+      </div>
+    </header>
+    <main id="chatArea">
+      <div id="messages"></div>
+    </main>
+    <footer>
+      <input type="text" id="messageInput" placeholder="Tulis pesan...">
+      <button id="sendBtn">Kirim</button>
+    </footer>
+  </div>
+  <!-- Load Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
