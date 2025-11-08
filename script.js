@@ -120,6 +120,44 @@ function deleteMessage(key) {
     .catch(e => console.error("Error menghapus pesan:", e));
 }
 
+// Function to show delete confirmation popup
+function showDeletePopup(key, event) {
+  event.preventDefault(); // Prevent default context menu on long press
+
+  const overlay = document.createElement('div');
+  overlay.classList.add('overlay');
+  overlay.id = 'delete-overlay';
+
+  const popup = document.createElement('div');
+  popup.classList.add('confirm-delete');
+  popup.innerHTML = `
+    <p>Hapus pesan ini?</p>
+    <button class="confirm-yes">Ya</button>
+    <button class="confirm-no">Tidak</button>
+  `;
+
+  document.body.appendChild(overlay);
+  document.body.appendChild(popup);
+
+  // Handle button clicks
+  popup.querySelector('.confirm-yes').onclick = () => {
+    deleteMessage(key);
+    document.body.removeChild(overlay);
+    document.body.removeChild(popup);
+  };
+
+  popup.querySelector('.confirm-no').onclick = () => {
+    document.body.removeChild(overlay);
+    document.body.removeChild(popup);
+  };
+
+  // Close popup if overlay is clicked
+  overlay.onclick = () => {
+    document.body.removeChild(overlay);
+    document.body.removeChild(popup);
+  };
+}
+
 // Function to add message to DOM
 function addMessageToDOM(msg, key) {
   if (!messagesDiv) return;
@@ -158,18 +196,29 @@ function addMessageToDOM(msg, key) {
     msgDiv.textContent = msg.content;
   }
 
-  // Add delete button if message belongs to current user
+  // Add long press event for deleting own messages on mobile
   if (msg.sender === getUsername()) {
-    const deleteBtn = document.createElement('button');
-    deleteBtn.classList.add('delete-btn');
-    deleteBtn.innerHTML = '🗑️';
-    deleteBtn.onclick = (e) => {
-      e.stopPropagation(); // Prevent triggering reply click
-      if (confirm("Yakin ingin menghapus pesan ini?")) {
-        deleteMessage(key);
-      }
-    };
-    msgDiv.appendChild(deleteBtn);
+    let pressTimer;
+
+    msgDiv.addEventListener('touchstart', (e) => {
+      pressTimer = window.setTimeout(() => {
+        showDeletePopup(key, e);
+      }, 500); // 500ms = 0.5 detik untuk long press
+    });
+
+    msgDiv.addEventListener('touchend', () => {
+      clearTimeout(pressTimer);
+    });
+
+    msgDiv.addEventListener('touchmove', () => {
+      clearTimeout(pressTimer);
+    });
+
+    // Optional: Also add right-click context menu for desktop testing
+    msgDiv.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      showDeletePopup(key, e);
+    });
   }
 
   // Prepend user info before the message content
