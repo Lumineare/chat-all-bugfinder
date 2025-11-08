@@ -9,13 +9,54 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="d-flex justify-content-center align-items-center min-vh-100 bg-light">
-  <div id="app" class="d-flex flex-column bg-white rounded shadow" style="width:100%; max-width:900px; height:95vh;">
+  <!-- Layar Login/Registrasi -->
+  <div id="authScreen" class="d-flex flex-column align-items-center bg-white p-4 rounded shadow" style="width:100%; max-width:400px; display:block;">
+    <h2 class="mb-4">Chat App</h2>
+    <ul class="nav nav-tabs mb-3 w-100" id="authTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">Login</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">Daftar</button>
+      </li>
+    </ul>
+    <div class="tab-content w-100" id="authTabContent">
+      <div class="tab-pane fade show active" id="login" role="tabpanel">
+        <div class="mb-3">
+          <label for="loginUsername" class="form-label">Username</label>
+          <input type="text" class="form-control" id="loginUsername">
+        </div>
+        <div class="mb-3">
+          <label for="loginPassword" class="form-label">Password</label>
+          <input type="password" class="form-control" id="loginPassword">
+        </div>
+        <button id="loginBtn" class="btn btn-primary w-100">Login</button>
+      </div>
+      <div class="tab-pane fade" id="register" role="tabpanel">
+        <div class="mb-3">
+          <label for="registerUsername" class="form-label">Username</label>
+          <input type="text" class="form-control" id="registerUsername">
+        </div>
+        <div class="mb-3">
+          <label for="registerPassword" class="form-label">Password</label>
+          <input type="password" class="form-control" id="registerPassword">
+        </div>
+        <button id="registerBtn" class="btn btn-success w-100">Daftar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layar Utama Chat (default hidden) -->
+  <div id="mainApp" class="d-flex flex-column bg-white rounded shadow" style="width:100%; max-width:900px; height:95vh; display:none;">
     <div class="d-flex" style="height:100%;">
       <!-- Sidebar Kontak -->
       <div id="contactSidebar" class="d-flex flex-column bg-light border-end" style="width:250px; display:flex;">
-        <div class="p-3 border-bottom">
+        <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Kontak</h5>
-          <div class="input-group mt-2">
+          <button id="logoutBtn" class="btn btn-sm btn-outline-secondary">Logout</button>
+        </div>
+        <div class="p-3 border-bottom">
+          <div class="input-group">
             <input type="text" id="newContactInput" class="form-control form-control-sm" placeholder="Nama kontak">
             <button id="addContactBtn" class="btn btn-sm btn-primary">Tambah</button>
           </div>
@@ -29,7 +70,7 @@
         <header id="chatHeader" class="bg-primary text-white p-3 d-flex justify-content-between align-items-center d-none">
           <h1 class="h5 mb-0" id="chatTitle">Pilih Kontak</h1>
           <div class="d-flex align-items-center">
-            <input type="text" id="usernameInput" class="form-control form-control-sm me-2" placeholder="Nama Anda" value="Anonim" style="max-width:140px;">
+            <input type="text" id="usernameInput" class="form-control form-control-sm me-2" placeholder="Nama Anda" value="Anda" style="max-width:140px;" readonly>
             <input type="file" id="imageInput" accept="image/*" style="display: none;">
             <button id="uploadImageBtn" class="btn btn-light btn-sm">📷</button>
           </div>
