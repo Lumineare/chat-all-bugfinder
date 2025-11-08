@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, onDisconnect, serverTimestamp, remove } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -112,6 +112,14 @@ function cancelReply() {
   }
 }
 
+// Function to delete a message
+function deleteMessage(key) {
+  const msgRef = ref(database, `messages/${key}`);
+  remove(msgRef)
+    .then(() => console.log("Pesan berhasil dihapus"))
+    .catch(e => console.error("Error menghapus pesan:", e));
+}
+
 // Function to add message to DOM
 function addMessageToDOM(msg, key) {
   if (!messagesDiv) return;
@@ -139,8 +147,6 @@ function addMessageToDOM(msg, key) {
     const replyOrigin = document.createElement('div');
     replyOrigin.classList.add('reply-origin');
     replyOrigin.innerHTML = `<span>${msg.replyTo.sender}:</span> ${msg.replyTo.type === 'image' ? '[Gambar]' : msg.replyTo.content.substring(0, 50) + '...'}`;
-    // Optional: Add click to scroll to original message
-    // replyOrigin.onclick = () => scrollToMessage(msg.replyTo.key);
     msgDiv.appendChild(replyOrigin);
   }
 
@@ -150,6 +156,20 @@ function addMessageToDOM(msg, key) {
     msgDiv.appendChild(img);
   } else {
     msgDiv.textContent = msg.content;
+  }
+
+  // Add delete button if message belongs to current user
+  if (msg.sender === getUsername()) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.classList.add('delete-btn');
+    deleteBtn.innerHTML = '🗑️';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation(); // Prevent triggering reply click
+      if (confirm("Yakin ingin menghapus pesan ini?")) {
+        deleteMessage(key);
+      }
+    };
+    msgDiv.appendChild(deleteBtn);
   }
 
   // Prepend user info before the message content
