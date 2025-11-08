@@ -11,6 +11,8 @@
   --shadow: 0 2px 10px rgba(0,0,0,0.05);
   --reply-bg: #e0f7fa;
   --reply-border: #3498db;
+  --delete-btn-bg: #ff6b6b;
+  --delete-btn-hover: #ff5252;
 }
 
 .dark-mode {
@@ -25,6 +27,8 @@
   --shadow: 0 2px 10px rgba(0,0,0,0.2);
   --reply-bg: #1e3a8a;
   --reply-border: #60a5fa;
+  --delete-btn-bg: #ef4444;
+  --delete-btn-hover: #dc2626;
 }
 
 * {
@@ -101,6 +105,7 @@ main {
   word-wrap: break-word;
   position: relative;
   animation: fadeIn 0.3s ease-out;
+  transition: background-color 0.2s;
 }
 
 @keyframes fadeIn {
@@ -127,11 +132,19 @@ main {
   margin-bottom: 6px;
   font-size: 0.85rem;
   cursor: pointer;
-  border-left: 3px solid var(--reply-border);
+  border-left: 4px solid var(--reply-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .reply-origin span {
   font-weight: bold;
+}
+
+.reply-origin::before {
+  content: '↩️';
+  font-size: 0.9rem;
 }
 
 .message img {
@@ -139,6 +152,32 @@ main {
   border-radius: 8px;
   margin-top: 6px;
   display: block;
+}
+
+.delete-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: var(--delete-btn-bg);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.message:hover .delete-btn {
+  display: flex;
+}
+
+.delete-btn:hover {
+  background-color: var(--delete-btn-hover);
 }
 
 footer {
