@@ -38,7 +38,12 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
-#app {
+#authScreen {
+  border: none;
+  box-shadow: var(--shadow);
+}
+
+#mainApp {
   border: none;
   box-shadow: var(--shadow);
 }
