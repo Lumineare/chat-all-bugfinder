@@ -5,7 +5,7 @@ import { getDatabase, ref, push, onValue, onDisconnect, serverTimestamp, remove 
 const firebaseConfig = {
   apiKey: "AIzaSyAuTnzeqL4MewumZLrsaKe3Mo4osmwnsoA",
   authDomain: "chat-89990.firebaseapp.com",
-  databaseURL: "https://chat-89990-default-rtdb.firebaseio.com/",
+  databaseURL: "https://chat-89990-default-rtdb.firebaseio.com/", // <- Spasi di akhir dihapus
   projectId: "chat-89990",
   storageBucket: "chat-89990.firebasestorage.app",
   messagingSenderId: "169196104649",
