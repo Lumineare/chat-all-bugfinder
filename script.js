@@ -25,6 +25,11 @@ let messageInput, sendBtn, messagesDiv, usernameInput, imageInput, uploadImageBt
 
 // Function to send text message
 function sendMessage() {
+  if (!messageInput || !sendBtn || !messagesDiv) {
+    console.error("Elemen DOM belum siap!");
+    return;
+  }
+
   const text = messageInput.value.trim();
   if (text) {
     const newMessage = {
@@ -44,6 +49,8 @@ function sendMessage() {
 
 // Function to send image
 function sendImage() {
+  if (!imageInput) return;
+
   const file = imageInput.files[0];
   if (!file) return;
 
@@ -65,6 +72,11 @@ function sendImage() {
 
 // Function to display messages from Firebase
 onValue(messagesRef, (snapshot) => {
+  if (!messagesDiv) {
+    console.error("messagesDiv tidak ditemukan!");
+    return;
+  }
+
   messagesDiv.innerHTML = '';
   const data = snapshot.val();
   if (data) {
@@ -87,18 +99,24 @@ function startReply(msg) {
     content: msg.content,
     type: msg.type
   };
-  messageInput.placeholder = `Membalas ${msg.sender}...`;
-  messageInput.focus();
+  if (messageInput) {
+    messageInput.placeholder = `Membalas ${msg.sender}...`;
+    messageInput.focus();
+  }
 }
 
 // Function to cancel reply
 function cancelReply() {
   currentReplyTo = null;
-  messageInput.placeholder = 'Tulis pesan...';
+  if (messageInput) {
+    messageInput.placeholder = 'Tulis pesan...';
+  }
 }
 
 // Function to add message to DOM
 function addMessageToDOM(msg, key) {
+  if (!messagesDiv) return;
+
   const msgDiv = document.createElement('div');
   msgDiv.classList.add('message');
   msgDiv.classList.add(msg.sender === getUsername() ? 'sent' : 'received');
@@ -142,15 +160,21 @@ function addMessageToDOM(msg, key) {
 
 // Function to get current username
 function getUsername() {
+  if (!usernameInput) {
+    console.error("usernameInput tidak ditemukan!");
+    return 'Anonim';
+  }
   return usernameInput.value.trim() || 'Anonim';
 }
 
 // Set user status to online
-const userStatusRef = ref(database, `status/${getUsername()}`);
-onDisconnect(userStatusRef).set(false).then(() => {
-  // Set online status when user connects
-  userStatusRef.set(true);
-});
+if (typeof window !== 'undefined') {
+  const userStatusRef = ref(database, `status/${getUsername()}`);
+  onDisconnect(userStatusRef).set(false).then(() => {
+    // Set online status when user connects
+    userStatusRef.set(true);
+  });
+}
 
 // Wait for DOM to load before accessing elements
 document.addEventListener('DOMContentLoaded', () => {
@@ -160,6 +184,13 @@ document.addEventListener('DOMContentLoaded', () => {
   usernameInput = document.getElementById('usernameInput');
   imageInput = document.getElementById('imageInput');
   uploadImageBtn = document.getElementById('uploadImageBtn');
+
+  if (!messageInput || !sendBtn || !messagesDiv || !usernameInput || !imageInput || !uploadImageBtn) {
+    console.error("Salah satu elemen DOM tidak ditemukan!");
+    return;
+  }
+
+  console.log("Semua elemen DOM ditemukan");
 
   // Attach event listeners
   sendBtn.addEventListener('click', sendMessage);
@@ -171,5 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Cancel reply when user clicks outside input
-  messageInput.addEventListener('blur', cancelReply);
+  if (messageInput) {
+    messageInput.addEventListener('blur', cancelReply);
+  }
 });
