@@ -36,16 +36,40 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s, color 0.3s;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Hindari scroll horizontal */
 }
 
 #authScreen {
   border: none;
   box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
 #mainApp {
   border: none;
   box-shadow: var(--shadow);
+  width: 100%;
+  max-width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#contactSidebar {
+  height: calc(100vh - 60px); /* Sesuaikan dengan header */
+  overflow-y: auto;
+}
+
+#chatArea {
+  height: calc(100vh - 120px); /* Sesuaikan dengan header dan footer */
+  overflow-y: auto;
+  padding-bottom: 60px; /* Memberi ruang untuk footer yang fixed */
 }
 
 #contactsList .contact-item {
@@ -65,6 +89,22 @@ body {
 #contactsList .contact-item.active {
   background-color: #d1ecf1;
   font-weight: bold;
+}
+
+#searchResults .search-result-item {
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 4px;
+}
+
+#searchResults .search-result-item:hover {
+  background-color: #e9ecef;
 }
 
 .avatar-sm {
@@ -218,4 +258,35 @@ body {
   background-color: rgba(0,0,0,0.5);
   z-index: 99;
   display: none;
+}
+
+/* Optimasi untuk Mobile */
+@media (max-width: 768px) {
+  #contactSidebar {
+    display: none !important;
+  }
+
+  #chatArea {
+    height: calc(100vh - 120px);
+    padding-bottom: 60px;
+  }
+
+  #chatFooter {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 1000;
+  }
+
+  .form-control-lg {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .btn-lg {
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
 }
