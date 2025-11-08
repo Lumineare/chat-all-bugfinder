@@ -174,6 +174,13 @@ function addMessageToDOM(msg, key) {
   avatar.classList.add('avatar');
   avatar.textContent = msg.sender.charAt(0).toUpperCase();
 
+  // Status indicator (online/offline)
+  const statusIndicator = document.createElement('div');
+  statusIndicator.classList.add('status-indicator');
+  // Kita bisa ambil status dari Firebase nanti
+  // statusIndicator.classList.add('status-offline'); // atau 'status-online'
+  avatar.appendChild(statusIndicator);
+
   const nameSpan = document.createElement('span');
   nameSpan.textContent = msg.sender;
 
@@ -267,7 +274,10 @@ document.addEventListener('DOMContentLoaded', () => {
   imageInput.addEventListener('change', sendImage);
 
   messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   });
 
   // Cancel reply when user clicks outside input
