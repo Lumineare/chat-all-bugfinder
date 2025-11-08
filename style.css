@@ -10,6 +10,7 @@
   --border-color: #e0e0e0;
   --shadow: 0 2px 10px rgba(0,0,0,0.05);
   --reply-bg: #e0f7fa;
+  --reply-border: #3498db;
 }
 
 .dark-mode {
@@ -23,6 +24,7 @@
   --border-color: #475569;
   --shadow: 0 2px 10px rgba(0,0,0,0.2);
   --reply-bg: #1e3a8a;
+  --reply-border: #60a5fa;
 }
 
 * {
@@ -118,17 +120,17 @@ main {
   color: var(--text-primary);
 }
 
-.reply-preview {
+.reply-origin {
   background-color: var(--reply-bg);
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 8px;
   margin-bottom: 6px;
   font-size: 0.85rem;
   cursor: pointer;
-  border-left: 3px solid var(--accent-color);
+  border-left: 3px solid var(--reply-border);
 }
 
-.reply-preview span {
+.reply-origin span {
   font-weight: bold;
 }
 
@@ -196,16 +198,4 @@ footer {
   justify-content: center;
   color: white;
   font-size: 0.75rem;
-}
-
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #2ecc71;
-  margin-left: 4px;
-}
-
-.status-offline {
-  background-color: #e74c3c;
 }
