@@ -9,29 +9,46 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="d-flex justify-content-center align-items-center min-vh-100 bg-light">
-  <div id="app" class="d-flex flex-column bg-white rounded shadow" style="width:100%; max-width:600px; height:95vh;">
-    <!-- Header -->
-    <header class="bg-primary text-white p-3 d-flex justify-content-between align-items-center">
-      <h1 class="h5 mb-0">Chat</h1>
-      <div class="d-flex align-items-center">
-        <input type="text" id="usernameInput" class="form-control form-control-sm me-2" placeholder="Nama Anda" value="Anonim" style="max-width:140px;">
-        <input type="file" id="imageInput" accept="image/*" style="display: none;">
-        <button id="uploadImageBtn" class="btn btn-light btn-sm">📷</button>
+  <div id="app" class="d-flex flex-column bg-white rounded shadow" style="width:100%; max-width:900px; height:95vh;">
+    <div class="d-flex" style="height:100%;">
+      <!-- Sidebar Kontak -->
+      <div id="contactSidebar" class="d-flex flex-column bg-light border-end" style="width:250px; display:flex;">
+        <div class="p-3 border-bottom">
+          <h5 class="mb-0">Kontak</h5>
+          <div class="input-group mt-2">
+            <input type="text" id="newContactInput" class="form-control form-control-sm" placeholder="Nama kontak">
+            <button id="addContactBtn" class="btn btn-sm btn-primary">Tambah</button>
+          </div>
+        </div>
+        <div id="contactsList" class="flex-grow-1 overflow-auto p-2"></div>
       </div>
-    </header>
 
-    <!-- Chat Area -->
-    <main id="chatArea" class="flex-grow-1 p-3 overflow-auto bg-light">
-      <div id="messages" class="d-flex flex-column gap-3"></div>
-    </main>
+      <!-- Area Chat -->
+      <div class="d-flex flex-column flex-grow-1" style="min-width:0;">
+        <!-- Header Chat -->
+        <header id="chatHeader" class="bg-primary text-white p-3 d-flex justify-content-between align-items-center d-none">
+          <h1 class="h5 mb-0" id="chatTitle">Pilih Kontak</h1>
+          <div class="d-flex align-items-center">
+            <input type="text" id="usernameInput" class="form-control form-control-sm me-2" placeholder="Nama Anda" value="Anonim" style="max-width:140px;">
+            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+            <button id="uploadImageBtn" class="btn btn-light btn-sm">📷</button>
+          </div>
+        </header>
 
-    <!-- Footer -->
-    <footer class="p-3 border-top bg-white">
-      <div class="input-group">
-        <textarea id="messageInput" class="form-control" placeholder="Tulis pesan..." rows="1" style="resize:none;"></textarea>
-        <button id="sendBtn" class="btn btn-primary">Kirim</button>
+        <!-- Chat Area -->
+        <main id="chatArea" class="flex-grow-1 p-3 overflow-auto bg-light d-none">
+          <div id="messages" class="d-flex flex-column gap-3"></div>
+        </main>
+
+        <!-- Footer Chat -->
+        <footer id="chatFooter" class="p-3 border-top bg-white d-none">
+          <div class="input-group">
+            <textarea id="messageInput" class="form-control" placeholder="Tulis pesan..." rows="1" style="resize:none;"></textarea>
+            <button id="sendBtn" class="btn btn-primary">Kirim</button>
+          </div>
+        </footer>
       </div>
-    </footer>
+    </div>
   </div>
 
   <!-- Bootstrap JS -->
