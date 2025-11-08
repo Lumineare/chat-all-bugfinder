@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, serverTimestamp, remove, set } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+import { getDatabase, ref, push, onValue, serverTimestamp, remove, set, get } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-database.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -26,19 +26,21 @@ let loginUsername, loginPassword, loginBtn;
 let registerUsername, registerPassword, registerBtn;
 let logoutBtn;
 let authScreen, mainApp;
+let searchUserInput, searchUserBtn, searchResults;
 
 // Currently active user and contact
 let currentUser = null;
 let currentContactId = null;
+let currentContactUsername = null; // Untuk menyimpan username kontak yang sedang aktif
 
-// Function to generate unique contact ID
-function generateContactId(name) {
-  return name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-}
+// Function to generate unique contact ID (optional, kita gunakan userId kontak langsung)
+// function generateContactId(name) {
+//   return name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+// }
 
 // Function to handle login
 function handleLogin() {
-  const email = loginUsername.value.trim(); // Firebase Auth membutuhkan email
+  const email = loginUsername.value.trim();
   const password = loginPassword.value;
 
   if (!email || !password) {
@@ -46,8 +48,6 @@ function handleLogin() {
     return;
   }
 
-  // Gunakan email sebagai username
-  // Untuk menyederhanakan, kita asumsikan email = username
   signInWithEmailAndPassword(auth, email, password)
     .then((userCredential) => {
       console.log("Login berhasil:", userCredential.user);
@@ -64,7 +64,7 @@ function handleLogin() {
 
 // Function to handle registration
 function handleRegister() {
-  const email = registerUsername.value.trim(); // Gunakan username sebagai email
+  const email = registerUsername.value.trim();
   const password = registerPassword.value;
 
   if (!email || !password) {
@@ -73,19 +73,30 @@ function handleRegister() {
   }
 
   createUserWithEmailAndPassword(auth, email, password)
-    .then((userCredential) => {
+    .then(async (userCredential) => {
       console.log("Registrasi berhasil:", userCredential.user);
-      // Buat profil dasar di database
+      // Buat profil dasar di database, gunakan bagian sebelum @ sebagai username
+      const username = email.split('@')[0];
       const profileRef = ref(database, `users/${userCredential.user.uid}/profile`);
-      set(profileRef, {
-        username: email.split('@')[0], // Gunakan bagian sebelum @
-        createdAt: serverTimestamp()
-      }).then(() => {
+      const usernameIndexRef = ref(database, `usernames/${username}`);
+
+      // Gunakan transaction untuk mencegah konflik jika dua user mendaftar dengan username yang sama hampir bersamaan
+      try {
+        await set(profileRef, {
+          username: username,
+          email: email, // Simpan juga email
+          createdAt: serverTimestamp()
+        });
+        await set(usernameIndexRef, userCredential.user.uid); // Buat indeks username -> userId
         alert("Registrasi berhasil! Silakan login.");
         // Pindah ke tab login
         const loginTab = document.getElementById('login-tab');
         bootstrap.Tab.getOrCreateInstance(loginTab).show();
-      }).catch(e => console.error("Gagal membuat profil:", e));
+      } catch (e) {
+        console.error("Gagal membuat profil atau indeks username:", e);
+        alert("Gagal menyimpan profil. Silakan coba lagi.");
+        // Bisa tambahkan logika untuk menghapus user jika profil gagal dibuat
+      }
     })
     .catch((error) => {
       console.error("Registrasi gagal:", error);
@@ -99,6 +110,7 @@ function handleLogout() {
     console.log("Logout berhasil");
     currentUser = null;
     currentContactId = null;
+    currentContactUsername = null;
     showAuthScreen();
   }).catch((error) => {
     console.error("Logout gagal:", error);
@@ -120,25 +132,103 @@ function showAuthScreen() {
   loginPassword.value = '';
   registerUsername.value = '';
   registerPassword.value = '';
+  // Sembunyikan hasil pencarian
+  searchResults.classList.add('d-none');
+}
+
+// Function to search user by username
+async function searchUser() {
+  const usernameToSearch = searchUserInput.value.trim().toLowerCase();
+  if (!usernameToSearch) return;
+
+  const usernameIndexRef = ref(database, `usernames/${usernameToSearch}`);
+  try {
+    const snapshot = await get(usernameIndexRef);
+    if (snapshot.exists()) {
+      const foundUserId = snapshot.val();
+      // Ambil profil pengguna yang ditemukan
+      const profileRef = ref(database, `users/${foundUserId}/profile`);
+      const profileSnapshot = await get(profileRef);
+      if (profileSnapshot.exists()) {
+        const profile = profileSnapshot.val();
+        displaySearchResult(profile.username, foundUserId);
+      } else {
+        alert("Profil pengguna tidak ditemukan.");
+      }
+    } else {
+      alert("Username tidak ditemukan.");
+    }
+  } catch (e) {
+    console.error("Error mencari user:", e);
+    alert("Gagal mencari user: " + e.message);
+  }
+}
+
+// Function to display search result
+function displaySearchResult(username, userId) {
+    searchResults.classList.remove('d-none');
+    searchResults.innerHTML = ''; // Clear previous results
+
+    // Jangan tampilkan hasil jika user mencari dirinya sendiri
+    if (userId === currentUser.uid) {
+        searchResults.innerHTML = '<div class="alert alert-info">Ini akun Anda.</div>';
+        return;
+    }
+
+    const resultDiv = document.createElement('div');
+    resultDiv.classList.add('search-result-item');
+    resultDiv.innerHTML = `
+        <div class="avatar-sm">${username.charAt(0).toUpperCase()}</div>
+        <div>${username}</div>
+    `;
+    // Add button to add as contact
+    const addBtn = document.createElement('button');
+    addBtn.classList.add('btn', 'btn-sm', 'btn-outline-primary', 'ms-auto');
+    addBtn.textContent = 'Tambah Kontak';
+    addBtn.onclick = (e) => {
+        e.stopPropagation(); // Prevent triggering the item click
+        addContact(userId, username);
+    };
+    resultDiv.appendChild(addBtn);
+
+    resultDiv.onclick = () => {
+        // Opsional: bisa langsung pilih kontak jika ditemukan di daftar kontak
+        // Tapi karena bisa saja belum ditambahkan, kita hanya tampilkan tombol "Tambah Kontak"
+    };
+
+    searchResults.appendChild(resultDiv);
 }
 
 // Function to add contact to Firebase
-function addContact() {
-  if (!currentUser) return;
+async function addContact(userId, username) {
+  if (!currentUser || !userId) return;
 
-  const name = newContactInput.value.trim();
-  if (!name) return;
+  // Cek apakah sudah menjadi kontak
+  const contactRef = ref(database, `users/${currentUser.uid}/contacts/${userId}`);
+  try {
+    const snapshot = await get(contactRef);
+    if (snapshot.exists()) {
+        alert("Kontak sudah ada.");
+        return;
+    }
 
-  const contactId = generateContactId(name);
-  const contactRef = ref(database, `users/${currentUser.uid}/contacts/${contactId}`);
-  set(contactRef, {
-    name: name,
-    addedAt: serverTimestamp()
-  }).then(() => {
-    console.log("Kontak berhasil ditambahkan");
-    newContactInput.value = '';
-  }).catch(e => console.error("Error menambah kontak:", e));
+    // Tambahkan userId ke daftar kontak pengguna saat ini
+    await set(contactRef, true);
+
+    // Opsional: Tambahkan juga pengguna saat ini ke daftar kontak user yang ditambahkan (jika diinginkan)
+    // await set(ref(database, `users/${userId}/contacts/${currentUser.uid}`), true);
+
+    console.log("Kontak berhasil ditambahkan:", username);
+    newContactInput.value = ''; // Clear the input field
+    searchUserInput.value = ''; // Clear search input after adding
+    searchResults.classList.add('d-none'); // Hide search results
+    loadContacts(); // Reload contacts list
+  } catch (e) {
+    console.error("Error menambah kontak:", e);
+    alert("Gagal menambah kontak: " + e.message);
+  }
 }
+
 
 // Function to load contacts from Firebase
 function loadContacts() {
@@ -149,31 +239,39 @@ function loadContacts() {
     contactsList.innerHTML = '';
     const data = snapshot.val();
     if (data) {
-      Object.entries(data).forEach(([id, contact]) => {
-        const contactDiv = document.createElement('div');
-        contactDiv.classList.add('contact-item');
-        contactDiv.onclick = () => openChat(id, contact.name);
-        contactDiv.innerHTML = `
-          <div class="avatar-sm">${contact.name.charAt(0).toUpperCase()}</div>
-          <div>${contact.name}</div>
-        `;
-        if (id === currentContactId) {
-          contactDiv.classList.add('active');
-        }
-        contactsList.appendChild(contactDiv);
+      Object.keys(data).forEach((contactId) => {
+        // Ambil profil kontak
+        const profileRef = ref(database, `users/${contactId}/profile`);
+        onValue(profileRef, (profileSnapshot) => {
+          if (profileSnapshot.exists()) {
+            const profile = profileSnapshot.val();
+            const contactDiv = document.createElement('div');
+            contactDiv.classList.add('contact-item');
+            contactDiv.onclick = () => openChat(contactId, profile.username);
+            contactDiv.innerHTML = `
+              <div class="avatar-sm">${profile.username.charAt(0).toUpperCase()}</div>
+              <div>${profile.username}</div>
+            `;
+            if (contactId === currentContactId) {
+              contactDiv.classList.add('active');
+            }
+            contactsList.appendChild(contactDiv);
+          }
+        }, { onlyOnce: true }); // Hanya ambil sekali
       });
     }
   });
 }
 
 // Function to open chat with a contact
-function openChat(contactId, contactName) {
+function openChat(contactId, contactUsername) {
   if (!currentUser) return;
 
   currentContactId = contactId;
+  currentContactUsername = contactUsername;
 
   // Update UI
-  chatTitle.textContent = contactName;
+  chatTitle.textContent = contactUsername;
   chatHeader.classList.remove('d-none');
   chatArea.classList.remove('d-none');
   chatFooter.classList.remove('d-none');
@@ -182,7 +280,7 @@ function openChat(contactId, contactName) {
   document.querySelectorAll('#contactsList .contact-item').forEach(item => {
     item.classList.remove('active');
   });
-  event.target.closest('.contact-item').classList.add('active');
+  event.target.closest('.contact-item')?.classList.add('active');
 
   // Load messages for this contact
   loadMessagesForContact(contactId);
@@ -224,12 +322,24 @@ function sendMessage() {
       timestamp: serverTimestamp(),
       replyTo: currentReplyTo || null
     };
-    const msgRef = ref(database, `users/${currentUser.uid}/messages/${currentContactId}`);
-    push(msgRef, newMessage)
-      .then(() => console.log("Pesan berhasil dikirim"))
-      .catch(e => console.error("Error mengirim pesan:", e));
-    messageInput.value = '';
-    cancelReply(); // Reset reply
+
+    // Kirim ke pengguna saat ini
+    const currentUserMsgRef = ref(database, `users/${currentUser.uid}/messages/${currentContactId}`);
+    // Kirim ke kontak
+    const contactUserMsgRef = ref(database, `users/${currentContactId}/messages/${currentUser.uid}`);
+
+    // Gunakan Promise.all untuk mengirim ke dua tempat sekaligus
+    Promise.all([
+        push(currentUserMsgRef, newMessage),
+        push(contactUserMsgRef, newMessage)
+    ]).then(() => {
+        console.log("Pesan berhasil dikirim ke dua sisi");
+        messageInput.value = '';
+        cancelReply(); // Reset reply
+    }).catch(e => {
+        console.error("Error mengirim pesan:", e);
+        alert("Gagal mengirim pesan: " + e.message);
+    });
   }
 }
 
@@ -249,10 +359,22 @@ function sendImage() {
       timestamp: serverTimestamp(),
       replyTo: currentReplyTo || null
     };
-    const msgRef = ref(database, `users/${currentUser.uid}/messages/${currentContactId}`);
-    push(msgRef, newMessage)
-      .then(() => console.log("Gambar berhasil dikirim"))
-      .catch(e => console.error("Error mengirim gambar:", e));
+
+    // Kirim ke pengguna saat ini
+    const currentUserMsgRef = ref(database, `users/${currentUser.uid}/messages/${currentContactId}`);
+    // Kirim ke kontak
+    const contactUserMsgRef = ref(database, `users/${currentContactId}/messages/${currentUser.uid}`);
+
+    // Gunakan Promise.all untuk mengirim ke dua tempat sekaligus
+    Promise.all([
+        push(currentUserMsgRef, newMessage),
+        push(contactUserMsgRef, newMessage)
+    ]).then(() => {
+        console.log("Gambar berhasil dikirim ke dua sisi");
+    }).catch(e => {
+        console.error("Error mengirim gambar:", e);
+        alert("Gagal mengirim gambar: " + e.message);
+    });
   };
   reader.readAsDataURL(file);
 }
@@ -402,7 +524,8 @@ onAuthStateChanged(auth, (user) => {
   if (user) {
     // User is signed in
     currentUser = user;
-    usernameInput.value = user.email.split('@')[0]; // Gunakan bagian sebelum @
+    const email = user.email;
+    usernameInput.value = email ? email.split('@')[0] : 'Anda'; // Gunakan bagian sebelum @
     showMainApp();
     loadContacts();
   } else {
@@ -430,13 +553,17 @@ document.addEventListener('DOMContentLoaded', () => {
   imageInput = document.getElementById('imageInput');
   uploadImageBtn = document.getElementById('uploadImageBtn');
 
-  newContactInput = document.getElementById('newContactInput');
-  addContactBtn = document.getElementById('addContactBtn');
+  newContactInput = document.getElementById('newContactInput'); // Tidak digunakan lagi, tapi biarkan
+  addContactBtn = document.getElementById('addContactBtn'); // Digunakan untuk menambah dari hasil pencarian
   contactsList = document.getElementById('contactsList');
   chatHeader = document.getElementById('chatHeader');
   chatArea = document.getElementById('chatArea');
   chatFooter = document.getElementById('chatFooter');
   chatTitle = document.getElementById('chatTitle');
+
+  searchUserInput = document.getElementById('searchUserInput');
+  searchUserBtn = document.getElementById('searchUserBtn');
+  searchResults = document.getElementById('searchResults');
 
   authScreen = document.getElementById('authScreen');
   mainApp = document.getElementById('mainApp');
@@ -446,9 +573,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (registerBtn) registerBtn.addEventListener('click', handleRegister);
   if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
 
-  if (addContactBtn) addContactBtn.addEventListener('click', addContact);
-  if (newContactInput) newContactInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') addContact();
+  // Tidak menggunakan tombol tambah kontak lama
+  // if (addContactBtn) addContactBtn.addEventListener('click', addContact);
+  if (searchUserBtn) searchUserBtn.addEventListener('click', searchUser);
+  if (searchUserInput) searchUserInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') searchUser();
   });
 
   if (sendBtn) sendBtn.addEventListener('click', sendMessage);
